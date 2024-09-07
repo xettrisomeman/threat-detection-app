@@ -1,0 +1,240 @@
+{% extends 'home.html' %} {% block style %}
+<style>
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  .heading {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .inputField {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+  }
+
+
+  .tab {
+    overflow: hidden;
+    /* border: 1px solid #ccc; */
+    background-color: #f1f1f1;
+  }
+
+  .tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+  }
+
+  .logout-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    /* float: right; */
+  }
+
+  .logout-btn:hover {
+    background-color: #d32f2f; /* Change the background color on hover */
+  }
+
+  .tab button:hover {
+    background-color: rgb(147 197 253);
+  }
+
+  .tab button.active {
+    --tw-bg-opacity: 1;
+    background-color: rgb(59 130 246 / var(--tw-bg-opacity));
+    color: white;
+  }
+
+  .tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+  }
+
+
+</style>
+{% endblock style %} {% block page %}
+<div class="wrapper">
+  <div class="main-content">
+    <div class="tab bg-blue-100">
+      <button
+        class="tablinks"
+        onclick="openTab(event, 'phishing')"
+        id="defaultOpen"
+      >
+        Phishing Detection
+      </button>
+      <button class="tablinks" onclick="openTab(event, 'xss')">XSS</button>
+      <button class="tablinks" onclick="openTab(event, 'sqli')">SQLi</button>
+      <button class="tablinks" onclick="openTab(event, 'history')">History</button>
+      <form action="/logout" method="post" class="mr-5 mt-1">
+        <input
+          type="submit"
+          style="float: right"
+          class="bg-rose-500 hover:bg-rose-600 text-white py-2 px-4 rounded cursor-pointer ease-linear"
+          value="Logout"
+        />
+      </form>
+    </div>
+
+    <div id="phishing" class="tabcontent">
+      <h3 class="heading font-bold text-xl my-1">Enter URL for Phishing Detection</h2>
+      <form action="/phishing_detect" method="post">
+        <input
+          type="text"
+          class="inputField"
+          id="userInput"
+          name="query"
+          required
+        />
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded cursor-pointer ease-linear">Submit</button>
+      </form>
+      <p>{{error}}</p>
+      {% if prediction %}
+      <h4 id="Result" class="text-white mt-5 p-4 rounded-lg">{{prediction}}</h4>
+      {%endif%}
+    </div>
+
+    <div id="xss" class="tabcontent">
+      <h3 class="heading font-bold text-xl my-1">Enter Text for XSS Detection</h2>
+      <form action="/xss" method="post">
+        <input
+          type="text"
+          class="inputField"
+          id="userInput"
+          name="query"
+          required
+        />
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded cursor-pointer ease-linear">Submit</button>
+      </form>
+      {% if prediction %}
+      <h4 id="Result" class="text-white mt-5 p-4 rounded-lg">{{prediction}}</h4>
+      {%endif%}
+    </div>
+
+    <div id="sqli" class="tabcontent">
+      <h3 class="heading font-bold text-xl my-1">Enter Query for SQLi Detection</h2>
+      <form action="/sqli" method="post">
+        <input
+          type="text"
+          class="inputField"
+          id="userInput"
+          name="query"
+          required
+        />
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded cursor-pointer ease-linear">Submit</button>
+      </form>
+      {% if prediction %}
+      <h4 id="Result" class="text-white mt-5 p-4 rounded-lg">{{prediction}}</h4>
+      {%endif%}
+    </div>
+
+    <div id="history" class="tabcontent">
+      <h3 class="heading font-bold text-xl my-1">History</h3>
+      <div id="HistoryCollection" class="history-content">
+        {% if user_requests %} {% for request in user_requests[::-1] %}
+        <div id="bg-history" class="bg-slate-50 mt-4 rounded-lg  ">
+          <p class="pl-4 pt-4 pr-4 mb-4"> <span class="unerline font-bold">Input:</span> {{ request.text }}</p>
+          <p id="ResultHistory" class="pl-4 pb-4 pr-4 "> <span class="unerline font-bold">Result:</span> {{ request.request }}</p>
+        </div>
+        {% endfor %} {% else %}
+        <p>No requests yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    // Iterate over each <p> element with class "result-text"
+    $('p#ResultHistory').each(function () {
+      var text = $(this).text().trim(); // Get trimmed text content of the <p> element
+        console.log(text)
+      // Check the text content and add the appropriate class to its parent
+      if (text === 'Result: Phishing site!' || text === 'Result: Xss Attack' || text === 'Result: SQLInjection') {
+        $(this).closest('#bg-history').addClass('bg-red-200 shadow-md shadow-red-50 border-2 border-red-400');
+      } else if (text === 'Result: Not a Phishing site!' || text === 'Result: Normal') {
+        $(this).closest('#bg-history').addClass('bg-green-200 shadow-md  shadow-green-50 border-2 border-green-400');
+      }
+    });
+  });
+</script>
+
+<!-- Change the color of background -->
+<script>
+  $(document).ready(function () {
+    $('h4#Result').each(function () {
+      var text = $(this).text().trim() // Get text content of the <h2> and trim any whitespace
+
+      console.log(
+        'The background color of text is: ',
+        $(this).css('background-color')
+      )
+
+      if (
+        text === 'Phishing site!' ||
+        text === 'Xss Attack' ||
+        text === 'SQLInjection'
+      ) {
+        $(this).addClass('bg-red-500')
+      } else if (text === 'Not a Phishing site!' || text === 'Normal') {
+        $(this).addClass('bg-green-500')
+      }
+    })
+  })
+</script>
+
+
+
+  <script>
+    function openTab(evt, tabName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
+
+    document.getElementById("defaultOpen").click();
+  </script>
+
+{% if exp %}
+<center><h3 class="py-4 bg-blue-200 my-2">{{text}}</h3></center>
+<center><h3 class="py-4 bg-blue-200 my-2">Finding {{attack}}</h3></center>
+{{ exp|safe }} {% endif %} {% if plot %}
+<img src="{{plot}}" />
+{%endif %} 
+
+
+
+{% endblock page %}
